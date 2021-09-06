@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% block title %}
+Комната {{ room_title }}
+{% endblock %}
+{% block content %}
+<div class="row d-flex justify-content-center">
+    <div class="col-6">
+        <form>
+            <div class="form-group">
+                <textarea class="form-control" id="chat-text" rows="10"></textarea>
+            </div>
+            <br/>
+            <div class="form-group">
+                <input class="form-control" id="user-message" type="text" size="80">
+            </div>
+            <br/>
+            <input class="btn btn-secondary btn-lg btn-block" id="submit" type="button" value="Отправить">
+        </form>
+    </div>
+</div>
+
+{{ room_title|json_script:'room_title' }}
+{{ request.user.username|json_script:'user_username' }}
+{% endblock %}
+{% block scripts %}
+<script>
+    const user_name = JSON.parse(document.querySelector('#user_username').textContent);
+     const roomTitle = JSON.parse(document.getElementById('room_title').textContent);
+
+    document.querySelector('#submit').onclick = (e) => {
+        const inputMessage = document.querySelector('#user-message').value;
+        console.log(inputMessage)
+        chatSocket.send(JSON.stringify({
+            'message': inputMessage,
+            'user_name': user_name,
+        }))
+        inputMessage.value = '';
+    };
+       
+    const chatSocket = new WebSocket(
+        'ws://' +
+        window.location.host +
+        '/ws/' + roomTitle + '/'
+    );
+
+    chatSocket.onmessage = (e) => {
+        const data = JSON.parse(e.data);
+        document.querySelector("#chat-text").value += 
+        (data.username ? data.username : 'anonymus') + ' : ' + data.message + '\n'
+    }
+</script>
+{% endblock %}
