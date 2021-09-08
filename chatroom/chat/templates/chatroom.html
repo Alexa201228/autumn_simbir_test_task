@@ -69,8 +69,10 @@
 
     chatSocket.onopen = (e) => {
         const user_nickname = localStorage.getItem('user-nickname')
+        if(!user_nickname){
+            window.location.pathname = '/'
+        }
         document.querySelector("#chat-text").value += 'Пользователь ' + user_nickname + ' вошел в чат \n'
-        console.log(localStorage)
     }
 
     chatSocket.onclose = (e) => {
