@@ -3,36 +3,51 @@
 Комната {{ room_title }}
 {% endblock %}
 {% block content %}
-<div class="row d-flex justify-content-center">
-    <div class="col-6">
-        <form>
-            <div class="form-group">
-                <textarea class="form-control" id="chat-text" rows="10"></textarea>
-            </div>
-            <br/>
-            <div class="form-group">
-                <input class="form-control" id="user-message" type="text" size="80">
-            </div>
-            <br/>
-            <input class="btn btn-secondary btn-lg btn-block" id="submit" type="button" value="Отправить">
-        </form>
+<header>
+    <p>
+        <a href="/">Главная</a>
+    </p>
+</header>
+<div class="row d-flex justify-content-center align-items-center" style="height: 90vh;">
+    <div class="container">
+        <div class="col-10">
+            <form>
+                <div class="form-group">
+                    <textarea class="form-control" id="chat-text" rows="10">
+                       {% for m in messages %}
+                        {{ m.author }}
+                        {{ m.message_body }}
+                        {{ m.date_sent|date:"d.m.Y" }}, {{ m.date_sent|time:"G:i" }}
+                        {% endfor %} 
+                    </textarea>
+                </div>
+                <br/>
+                <div class="form-group">
+                    <input class="form-control" id="user-message" type="text" size="80">
+                </div>
+                <br/>
+                <input class="btn btn-secondary btn-lg btn-block" id="submit" type="button" value="Отправить">
+            </form>
+        </div>
     </div>
 </div>
-
+<div class="container">
+    
+</div>
 {{ room_title|json_script:'room_title' }}
 {{ request.user.username|json_script:'user_username' }}
 {% endblock %}
 {% block scripts %}
 <script>
-    const user_name = JSON.parse(document.querySelector('#user_username').textContent);
+    const user_name = localStorage.getItem('user-nickname');
      const roomTitle = JSON.parse(document.getElementById('room_title').textContent);
-
+    
     document.querySelector('#submit').onclick = (e) => {
         const inputMessage = document.querySelector('#user-message').value;
-        console.log(inputMessage)
         chatSocket.send(JSON.stringify({
             'message': inputMessage,
             'user_name': user_name,
+            'room_title': roomTitle 
         }))
         inputMessage.value = '';
     };
@@ -45,8 +60,22 @@
 
     chatSocket.onmessage = (e) => {
         const data = JSON.parse(e.data);
+        const message_date = new Date();
+        const options = { month : 'numeric', day: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric' }
+        const django_date_format = new Intl.DateTimeFormat(undefined, options).format(message_date)
         document.querySelector("#chat-text").value += 
-        (data.username ? data.username : 'anonymus') + ' : ' + data.message + '\n'
+        localStorage.getItem('user-nickname') + ' : ' + data.message + '\n' + django_date_format + '\n';
+    }
+
+    chatSocket.onopen = (e) => {
+        const user_nickname = localStorage.getItem('user-nickname')
+        document.querySelector("#chat-text").value += 'Пользователь ' + user_nickname + ' вошел в чат \n'
+        console.log(localStorage)
+    }
+
+    chatSocket.onclose = (e) => {
+        localStorage.removeItem('user-nickname')
+        console.log(localStorage)
     }
 </script>
 {% endblock %}

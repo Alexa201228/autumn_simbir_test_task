@@ -1,3 +1,11 @@
 from django.db import models
 
-# Create your models here.
+
+class Message(models.Model):
+    author = models.CharField(max_length=200)
+    room = models.CharField(max_length=200)
+    message_body = models.TextField()
+    date_sent = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ('date_sent',)

@@ -2,3 +2,29 @@
 {% block title %}
 Добро пожаловать в A-Chat!
 {% endblock %}
+{% block content %}
+<div class="d-flex flex-column justify-content-center align-items-center" style="height: 90vh;">
+    <div class="container">
+        <div class="form-group">
+            <h3>Введите название комнаты</h3>
+            <input type="text" id="room-name">
+        </div>
+        <div class="form-group">
+            <h3>И никнейм для комнаты</h3>
+            <input type="text" id="room-nickname">
+        </div>
+        <input type="submit" id="enter-room" value="Войти в комнату">
+    </div> 
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+    document.querySelector('#enter-room').onclick = (e) => {
+       const room_title = document.querySelector('#room-name').value;
+       const nick_name = document.querySelector('#room-nickname').value;
+        window.location.pathname = (room_title && nick_name) ? '/' + room_title + '/' : ''
+        localStorage.setItem('user-nickname', nick_name);
+    };
+
+</script>
+{% endblock %}
