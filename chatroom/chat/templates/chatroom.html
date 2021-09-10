@@ -3,23 +3,31 @@
 Комната {{ room_title }}
 {% endblock %}
 {% block content %}
-<header>
-    <p>
-        <a href="/">Главная</a>
-    </p>
-</header>
-<div class="row d-flex justify-content-center align-items-center" style="height: 90vh;">
+
+<div class="row d-flex justify-content-center align-items-center">
     <div class="container">
-        <div class="col-10">
+        <div>
             <form>
-                <div class="form-group">
-                    <textarea class="form-control" id="chat-text" rows="10">
+                <div class="d-flex flex-column" id="chat-text">
                        {% for m in messages %}
-                        {{ m.author }}
-                        {{ m.message_body }}
-                        {{ m.date_sent|date:"d.m.Y" }}, {{ m.date_sent|time:"G:i" }}
+                       <div class="container" id="message-container">
+                            <div class="container d-flex justify-content-between">
+                              <div class="container">
+                                {{ m.author }}
+                            </div> 
+                            <div class="container">
+                                {{ m.date_sent|date:"d.m.Y" }}, {{ m.date_sent|time:"G:i" }}
+                            </div>
+                           </div>
+                        <div class="container">
+                            {{ m.message_body }}
+                        </div>
+                        <button class="delete-button"
+                        data-message-key="{{ m.message_key }}">Удалить</button>
+
+                       </div>
+                       <br/>
                         {% endfor %} 
-                    </textarea>
                 </div>
                 <br/>
                 <div class="form-group">
@@ -35,19 +43,34 @@
     
 </div>
 {{ room_title|json_script:'room_title' }}
-{{ request.user.username|json_script:'user_username' }}
+
 {% endblock %}
 {% block scripts %}
 <script>
     const user_name = localStorage.getItem('user-nickname');
-     const roomTitle = JSON.parse(document.getElementById('room_title').textContent);
+    const roomTitle = JSON.parse(document.getElementById('room_title').textContent);
     
+
+    var delete_buttons = document.getElementsByClassName('delete-button')
+
+    for(var i = 0; i < delete_buttons.length; i++){
+        const key = delete_buttons[i].getAttribute('data-message-key');
+        delete_buttons[i].addEventListener('click', function (){
+
+            chatSocket.send(JSON.stringify({
+            'message_key': key
+            }))
+        })
+    }
+
     document.querySelector('#submit').onclick = (e) => {
         const inputMessage = document.querySelector('#user-message').value;
+        var message_date = new Date();
         chatSocket.send(JSON.stringify({
             'message': inputMessage,
             'user_name': user_name,
-            'room_title': roomTitle 
+            'room_title': roomTitle,
+            'message_key': message_date
         }))
         inputMessage.value = '';
     };
@@ -59,25 +82,69 @@
     );
 
     chatSocket.onmessage = (e) => {
-        const data = JSON.parse(e.data);
-        const message_date = new Date();
-        const options = { month : 'numeric', day: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric' }
-        const django_date_format = new Intl.DateTimeFormat(undefined, options).format(message_date)
-        document.querySelector("#chat-text").value += 
-        localStorage.getItem('user-nickname') + ' : ' + data.message + '\n' + django_date_format + '\n';
+        var data = JSON.parse(e.data);
+        //create container for new message
+        var new_message_container = createHTMLelement('div', 'class', 'container')
+        new_message_container.id = 'message-container';
+        //create text container
+        var text_container = createHTMLelement('div', 'class', 'container')
+        text_container.textContent = data.message;
+        
+            
+            var options = { month : 'numeric', day: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric' }
+            const django_date_format = new Intl.DateTimeFormat(undefined, options).format(new Date(data.message_key))
+        
+           //create and fillin inner divs
+            var header_container = createHTMLelement('div', 'class', 'container d-flex justify-content-between')
+            var author_container = createHTMLelement('div', 'class', 'container')
+            author_container.textContent = user_name;
+            var date_container = createHTMLelement('div', 'class', 'container')
+            date_container.textContent = django_date_format;
+            //append inner divs in message container
+            header_container.appendChild(author_container)
+            header_container.appendChild(date_container);
+            new_message_container.appendChild(header_container); 
+
+        new_message_container.appendChild(text_container);
+        var delete_button = createHTMLelement('button', 'id', 'delete-button')
+        delete_button.textContent = 'Удалить';
+        delete_button.setAttribute('data-message-key', data.message_key);
+        console.log(data.message_key)
+        delete_button.addEventListener(
+            'click', function (){
+                const key = this.getAttribute('data-message-key');
+                chatSocket.send(JSON.stringify({
+                    'message_key': key
+                }))
+            }
+        )
+        new_message_container.appendChild(delete_button);
+        new_message_container.appendChild(document.createElement('br'));
+        document.querySelector("#chat-text").appendChild(new_message_container);
     }
 
     chatSocket.onopen = (e) => {
-        const user_nickname = localStorage.getItem('user-nickname')
-        if(!user_nickname){
+        if(!user_name){
             window.location.pathname = '/'
-        }
-        document.querySelector("#chat-text").value += 'Пользователь ' + user_nickname + ' вошел в чат \n'
+        }     
+        document.getElementById('user-message').focus() 
     }
 
     chatSocket.onclose = (e) => {
+
         localStorage.removeItem('user-nickname')
-        console.log(localStorage)
     }
+
+    const createHTMLelement = (elem, attrName=null, attrs=null) =>{
+        const result = document.createElement(elem);
+        if(attrName){
+            result.setAttribute(attrName, attrs)
+        }
+        return result;
+    }
+
+    // function deleteMessage(user, room, message, date){
+
+    // }
 </script>
 {% endblock %}
