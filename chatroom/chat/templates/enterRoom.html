@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block title %}
+Выберите чат-комнату
+{% endblock %}
+{% block content %}
+<h3>Привет, {{ request.user }}!</h3>
+<h4>Чтобы начать общение, необходимо выбрать комнату</h4>
+{% for room in rooms %}
+<p>
+    <a href="{% url 'chat:room' room.slug %}">
+        {{ room.room_name }}
+    </a>
+</p>
+{% endfor %}
+{% endblock %}

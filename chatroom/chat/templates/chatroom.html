@@ -1,9 +1,9 @@
 {% extends 'base.html' %}
 {% block title %}
-Комната {{ room_title }}
+Комната {{ room.room_name }}
 {% endblock %}
 {% block content %}
-
+{% load static %}
 <div class="row d-flex justify-content-center align-items-center">
     <div class="container">
         <div>
@@ -19,14 +19,24 @@
                                 {{ m.date_sent|date:"d.m.Y" }}, {{ m.date_sent|time:"G:i" }}
                             </div>
                            </div>
-                        <div class="container">
-                            {{ m.message_body }}
+                        <div class="container" data-changed="{{ m.changed }}">
+                            <p class="message-content">
+                                {{ m.message_body }}
+                            </p>
+                            {% if m.changed %}                            
+                            <p>
+                                ред.
+                            </p>
+                            {% endif %}
                         </div>
-                        <button class="delete-button"
-                        data-message-key="{{ m.message_key }}">Удалить</button>
-
+                        {% if request.user == m.author %}
+                        <div class="container d-flex justify-content-between">
+                            <button class="delete-button"
+                            data-message-key="{{ m.message_key }}" type="button">Удалить</button>
+                            <button class="change-button" data-message-key="{{ m.message_key }}" type="button">Изменить</button>
+                        </div>
+                        {% endif %}
                        </div>
-                       <br/>
                         {% endfor %} 
                 </div>
                 <br/>
@@ -42,86 +52,167 @@
 <div class="container">
     
 </div>
-{{ room_title|json_script:'room_title' }}
-
+{{ room.slug|json_script:'room_title' }}
+{{ request.user.username|json_script:'user' }}
 {% endblock %}
 {% block scripts %}
 <script>
-    const user_name = localStorage.getItem('user-nickname');
+    const user_name = JSON.parse(document.getElementById('user').textContent);
     const roomTitle = JSON.parse(document.getElementById('room_title').textContent);
     
+    function onMessageChangeButtonPress(key, old_message){
+        document.querySelector('#user-message').value = old_message.textContent.trim()
+            document.querySelector('#submit').value = 'Изменить'
+            document.querySelector('#user-message').focus()
+            document.querySelector('#submit').setAttribute('key', key)
+    }
+
+    function onMessageButtonPress(key, message_code) {
+            chatSocket.send(JSON.stringify({
+            'message_key': key,
+            'code': message_code,
+            }))
+    }
 
     var delete_buttons = document.getElementsByClassName('delete-button')
+    var change_buttons = document.getElementsByClassName('change-button')
+
 
     for(var i = 0; i < delete_buttons.length; i++){
-        const key = delete_buttons[i].getAttribute('data-message-key');
-        delete_buttons[i].addEventListener('click', function (){
+        const key = delete_buttons[i].getAttribute('data-message-key'); 
+        delete_buttons[i].addEventListener('click', function(){
+        onMessageButtonPress(key, 'delete_message')  
+        })       
+    }
 
-            chatSocket.send(JSON.stringify({
-            'message_key': key
-            }))
-        })
+    for(var i = 0; i < change_buttons.length; i++){  
+        const key = change_buttons[i].getAttribute('data-message-key');
+        const old_message = change_buttons[i].parentElement.parentElement
+        .querySelector('div[data-changed]').querySelector('.message-content')
+        change_buttons[i].addEventListener('click', function(){
+            onMessageChangeButtonPress(key, old_message)
+        })    
     }
 
     document.querySelector('#submit').onclick = (e) => {
+        e.preventDefault();
         const inputMessage = document.querySelector('#user-message').value;
         var message_date = new Date();
-        chatSocket.send(JSON.stringify({
-            'message': inputMessage,
-            'user_name': user_name,
-            'room_title': roomTitle,
-            'message_key': message_date
-        }))
+        if(document.querySelector('#submit').value === 'Изменить')
+        {
+           chatSocket.send(JSON.stringify({
+                        'message': inputMessage,
+                        'user_name': user_name,
+                        'room_title': roomTitle,
+                        'message_key': document.querySelector('#submit').getAttribute('key'),
+                        'code': 'change_message'
+                    })) 
+             
+        }
+
+        else{
+            chatSocket.send(JSON.stringify({
+                'message': inputMessage,
+                'user_name': user_name,
+                'room_title': roomTitle,
+                'message_key': message_date,
+                'code': 'save_message'
+            }))
+        }
+        document.querySelector('#submit').removeAttribute('key')
+        document.querySelector('#submit').value = 'Отправить'
         inputMessage.value = '';
     };
        
+    document.querySelector('#user-message').onkeydown = (e) => {
+        if(e.keyCode === 13){
+            e.preventDefault();
+            document.querySelector('#submit').click();
+        }
+    }
     const chatSocket = new WebSocket(
         'ws://' +
         window.location.host +
-        '/ws/' + roomTitle + '/'
+        '/ws/chat/' + roomTitle + '/'
     );
 
     chatSocket.onmessage = (e) => {
         var data = JSON.parse(e.data);
-        //create container for new message
-        var new_message_container = createHTMLelement('div', 'class', 'container')
-        new_message_container.id = 'message-container';
-        //create text container
-        var text_container = createHTMLelement('div', 'class', 'container')
-        text_container.textContent = data.message;
-        
+        e.preventDefault();
+        if(data.delete || data.changed){
+            var container = document                                                        // старый текст измененного сообщения
+                    .querySelector(`button[data-message-key="${data.message_key}"]`)// и изменяем его
+                    .parentElement.parentElement
+
+            if(data.delete){
+                    document.querySelector("#chat-text").removeChild(container)
+                }
+            
+            if(data.changed){
+                var changed_message = container.querySelector('div[data-changed]');
+                changed_message.textContent = data.message
+                const changed_label = document.createElement('p');
+                changed_label.textContent = 'ред.'
+                changed_message.appendChild(changed_label)
+                document.querySelector('#user-message').value = '';
+                document.querySelector('#user-message').focus();
+            }
+
+        }
+
+        else{
+            //create container for new message
+            var new_message_container = createHTMLelement('div', 'class', 'container')
+            new_message_container.id = 'message-container';
+            //create text container
+            var text_container = createHTMLelement('div', 'class', 'container')
+            text_container.setAttribute('data-changed', 'message')
+            text_container.textContent = data.message;
             
             var options = { month : 'numeric', day: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric' }
             const django_date_format = new Intl.DateTimeFormat(undefined, options).format(new Date(data.message_key))
         
-           //create and fillin inner divs
+            //create and fillin inner divs
             var header_container = createHTMLelement('div', 'class', 'container d-flex justify-content-between')
             var author_container = createHTMLelement('div', 'class', 'container')
-            author_container.textContent = user_name;
+            author_container.textContent = data.username;
             var date_container = createHTMLelement('div', 'class', 'container')
             date_container.textContent = django_date_format;
-            //append inner divs in message container
+            //append all elements in message container
+            new_message_container.appendChild(header_container); 
+            new_message_container.appendChild(text_container); 
             header_container.appendChild(author_container)
             header_container.appendChild(date_container);
-            new_message_container.appendChild(header_container); 
-
-        new_message_container.appendChild(text_container);
-        var delete_button = createHTMLelement('button', 'id', 'delete-button')
-        delete_button.textContent = 'Удалить';
-        delete_button.setAttribute('data-message-key', data.message_key);
-        console.log(data.message_key)
-        delete_button.addEventListener(
-            'click', function (){
-                const key = this.getAttribute('data-message-key');
-                chatSocket.send(JSON.stringify({
-                    'message_key': key
-                }))
-            }
-        )
-        new_message_container.appendChild(delete_button);
-        new_message_container.appendChild(document.createElement('br'));
-        document.querySelector("#chat-text").appendChild(new_message_container);
-    }
+            //create buttons if cuurent user wrote this message
+            if(data.username == user_name){
+                var button_container = createHTMLelement('div', 'class', 'container d-flex justify-content-between')
+                var delete_button = createHTMLelement('button', 'id', 'delete-button')
+                delete_button.textContent = 'Удалить';
+                delete_button.setAttribute('data-message-key', data.message_key);
+                var change_button = createHTMLelement('button', 'id', 'change-button')
+                change_button.textContent = 'Изменить';
+                change_button.setAttribute('data-message-key', data.message_key);
+                change_button.type = 'button'
+                delete_button.type = 'button'
+                delete_button.addEventListener(
+                    'click', function(){
+                        onMessageButtonPress(data.message_key, 'delete_message')
+                    })
+                button_container.appendChild(delete_button);
+                button_container.appendChild(change_button);
+                new_message_container.appendChild(button_container);
+                const old_message = change_button.parentElement.parentElement
+                    .querySelector('div[data-changed]').querySelector('.message-content')
+                    change_button.addEventListener(
+                        'click', function(){
+                            onMessageChangeButtonPress(data.message_key, old_message)
+                            }   
+                        )
+                    }   
+                new_message_container.appendChild(document.createElement('br'));
+                document.querySelector("#chat-text").appendChild(new_message_container);
+            } 
+       }
 
     chatSocket.onopen = (e) => {
         if(!user_name){
@@ -130,10 +221,6 @@
         document.getElementById('user-message').focus() 
     }
 
-    chatSocket.onclose = (e) => {
-
-        localStorage.removeItem('user-nickname')
-    }
 
     const createHTMLelement = (elem, attrName=null, attrs=null) =>{
         const result = document.createElement(elem);
@@ -143,8 +230,7 @@
         return result;
     }
 
-    // function deleteMessage(user, room, message, date){
 
-    // }
+
 </script>
 {% endblock %}
