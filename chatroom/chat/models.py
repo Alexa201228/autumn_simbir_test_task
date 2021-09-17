@@ -1,11 +1,21 @@
 from django.contrib.auth.models import User
 from django.db import models
-from django.utils.text import slugify
+from unidecode import unidecode
 
 
 class ChatRoom(models.Model):
     room_name = models.CharField(max_length=100)
-    slug = models.SlugField(max_length=150)
+    slug = models.SlugField(max_length=50)
+
+    def __str__(self):
+        return self.room_name
+
+    def save(self, *args, **kwargs):
+        # Если создание комны не из панели админа
+        # то присваиваем slug к транслиту кириллицы
+        if not self.slug:
+            self.slug = unidecode(self.room_name)
+        super().save(*args, **kwargs)
 
 
 class Message(models.Model):

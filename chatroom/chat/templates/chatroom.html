@@ -9,8 +9,11 @@
         <div>
             <form>
                 <div class="d-flex flex-column" id="chat-text">
-                       {% for m in messages %}
-                       <div class="container" id="message-container">
+                    {% for m in messages %}
+                    
+                    <div class="container" id="message-container"
+                       data-message-key="{{ m.message_key }}">
+                       <br/>
                             <div class="container d-flex justify-content-between">
                               <div class="container">
                                 {{ m.author }}
@@ -32,8 +35,8 @@
                         {% if request.user == m.author %}
                         <div class="container d-flex justify-content-between">
                             <button class="delete-button"
-                            data-message-key="{{ m.message_key }}" type="button">Удалить</button>
-                            <button class="change-button" data-message-key="{{ m.message_key }}" type="button">Изменить</button>
+                             type="button">Удалить</button>
+                            <button class="change-button" type="button">Изменить</button>
                         </div>
                         {% endif %}
                        </div>
@@ -69,6 +72,7 @@
 
     function onMessageButtonPress(key, message_code) {
             chatSocket.send(JSON.stringify({
+            'user_name': user_name,
             'message_key': key,
             'code': message_code,
             }))
@@ -79,14 +83,14 @@
 
 
     for(var i = 0; i < delete_buttons.length; i++){
-        const key = delete_buttons[i].getAttribute('data-message-key'); 
+        const key = delete_buttons[i].parentElement.parentElement.getAttribute('data-message-key'); 
         delete_buttons[i].addEventListener('click', function(){
         onMessageButtonPress(key, 'delete_message')  
         })       
     }
 
     for(var i = 0; i < change_buttons.length; i++){  
-        const key = change_buttons[i].getAttribute('data-message-key');
+        const key = change_buttons[i].parentElement.parentElement.getAttribute('data-message-key');
         const old_message = change_buttons[i].parentElement.parentElement
         .querySelector('div[data-changed]').querySelector('.message-content')
         change_buttons[i].addEventListener('click', function(){
@@ -109,7 +113,6 @@
                     })) 
              
         }
-
         else{
             chatSocket.send(JSON.stringify({
                 'message': inputMessage,
@@ -139,13 +142,12 @@
     chatSocket.onmessage = (e) => {
         var data = JSON.parse(e.data);
         e.preventDefault();
-        if(data.delete || data.changed){
-            var container = document                                                        // старый текст измененного сообщения
-                    .querySelector(`button[data-message-key="${data.message_key}"]`)// и изменяем его
-                    .parentElement.parentElement
-
+        if(data.changed || data.delete){
+            var container = document                                                        
+                    .querySelector(`div[data-message-key="${data.message_key}"]`)
+           
             if(data.delete){
-                    document.querySelector("#chat-text").removeChild(container)
+                 container.textContent = data.message;
                 }
             
             if(data.changed){
@@ -157,17 +159,18 @@
                 document.querySelector('#user-message').value = '';
                 document.querySelector('#user-message').focus();
             }
-
         }
-
         else{
             //create container for new message
             var new_message_container = createHTMLelement('div', 'class', 'container')
             new_message_container.id = 'message-container';
+            new_message_container.setAttribute('data-message-key', data.message_key)
             //create text container
             var text_container = createHTMLelement('div', 'class', 'container')
-            text_container.setAttribute('data-changed', 'message')
-            text_container.textContent = data.message;
+            text_container.setAttribute('data-changed', false)
+            var text_paragraph = createHTMLelement('p', 'class', 'message-content')
+            text_paragraph.textContent = data.message;
+            text_container.appendChild(text_paragraph)
             
             var options = { month : 'numeric', day: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric' }
             const django_date_format = new Intl.DateTimeFormat(undefined, options).format(new Date(data.message_key))
@@ -179,19 +182,19 @@
             var date_container = createHTMLelement('div', 'class', 'container')
             date_container.textContent = django_date_format;
             //append all elements in message container
+            new_message_container.appendChild(document.createElement('br'));
             new_message_container.appendChild(header_container); 
             new_message_container.appendChild(text_container); 
             header_container.appendChild(author_container)
             header_container.appendChild(date_container);
-            //create buttons if cuurent user wrote this message
+            //create buttons if current user wrote this message
             if(data.username == user_name){
                 var button_container = createHTMLelement('div', 'class', 'container d-flex justify-content-between')
                 var delete_button = createHTMLelement('button', 'id', 'delete-button')
                 delete_button.textContent = 'Удалить';
-                delete_button.setAttribute('data-message-key', data.message_key);
-                var change_button = createHTMLelement('button', 'id', 'change-button')
+                                var change_button = createHTMLelement('button', 'id', 'change-button')
                 change_button.textContent = 'Изменить';
-                change_button.setAttribute('data-message-key', data.message_key);
+   
                 change_button.type = 'button'
                 delete_button.type = 'button'
                 delete_button.addEventListener(
@@ -200,24 +203,21 @@
                     })
                 button_container.appendChild(delete_button);
                 button_container.appendChild(change_button);
-                new_message_container.appendChild(button_container);
-                const old_message = change_button.parentElement.parentElement
-                    .querySelector('div[data-changed]').querySelector('.message-content')
-                    change_button.addEventListener(
+                new_message_container.appendChild(button_container);  
+                const old_message = new_message_container.querySelector('.message-content')
+                change_button.addEventListener(
                         'click', function(){
                             onMessageChangeButtonPress(data.message_key, old_message)
                             }   
                         )
-                    }   
-                new_message_container.appendChild(document.createElement('br'));
+                    }
+                
+                 
                 document.querySelector("#chat-text").appendChild(new_message_container);
             } 
        }
 
-    chatSocket.onopen = (e) => {
-        if(!user_name){
-            window.location.pathname = '/'
-        }     
+    chatSocket.onopen = (e) => {   
         document.getElementById('user-message').focus() 
     }
 
@@ -229,8 +229,5 @@
         }
         return result;
     }
-
-
-
 </script>
 {% endblock %}

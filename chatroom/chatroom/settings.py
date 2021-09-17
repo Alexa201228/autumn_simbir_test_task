@@ -39,7 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'channels',
-    'chat'
+    'chat',
 ]
 
 MIDDLEWARE = [
@@ -82,6 +82,9 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+
+LOGOUT_REDIRECT_URL = '/'
+
 
 AUTHENTICATION_BACKENDS = [
     'chat.auth_backends.PasswordlessAuthBackend',
