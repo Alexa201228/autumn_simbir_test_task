@@ -67,7 +67,7 @@ time {
 }
 
 .media-chat .media-body p.meta {
-  background-color: transparent !important;
+  background-color: transparent;
   padding: 0;
   opacity: 0.8;
 }
@@ -120,8 +120,9 @@ textarea {
 }
 
 .media-chat .media-body p.author {
-  max-width: fit-content;
+  max-width: 100℅;
   flex-wrap: wrap;
+  word-wrap: break-word;
   background-color: #d3dfe7;
   color: black;
   font-weight: 800;
