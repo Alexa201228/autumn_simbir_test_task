@@ -154,9 +154,12 @@
             }
             if(data.changed){
                 changed_message.querySelector('.message-content').textContent = data.message
-                const changed_label = document.createElement('p');
-                changed_label.textContent = 'ред.'
-                changed_message.appendChild(changed_label)
+                if(changed_message.childElementCount == 1){
+                    const changed_label = document.createElement('p');
+                    changed_label.textContent = 'ред.'
+                    changed_message.appendChild(changed_label)
+                }
+                
                 document.querySelector('#user-message').value = '';
                 document.querySelector('#user-message').focus();
             }
