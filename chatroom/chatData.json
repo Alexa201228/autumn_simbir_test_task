@@ -1,0 +1,29 @@
+﻿[
+{
+  "model": "chat.chatroom",
+  "pk": 1,
+  "fields": {
+    "room_name": "Наука",
+    "slug": "nauka",
+    "description": "Чат для тех, кому интересны последние достижения науки"
+  }
+},
+{
+  "model": "chat.chatroom",
+  "pk": 2,
+  "fields": {
+    "room_name": "Programmizzz",
+    "slug": "programmizzz",
+    "description": "Сообщество программистов"
+  }
+},
+{
+  "model": "chat.chatroom",
+  "pk": 3,
+  "fields": {
+    "room_name": "True_GAMER",
+    "slug": "true_gamer",
+    "description": "Место для обсуждения новинок игровой индустрии"
+  }
+}
+]

@@ -4,8 +4,10 @@ from unidecode import unidecode
 
 
 class ChatRoom(models.Model):
-    room_name = models.CharField(max_length=100)
-    slug = models.SlugField(max_length=50)
+    room_name = models.CharField(
+        max_length=100, verbose_name='Название комнаты')
+    slug = models.SlugField(max_length=100)
+    description = models.TextField(blank=True, verbose_name='Описание комнаты')
 
     def __str__(self):
         return self.room_name

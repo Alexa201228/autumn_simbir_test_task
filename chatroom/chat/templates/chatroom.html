@@ -4,54 +4,56 @@
 {% endblock %}
 {% block content %}
 {% load static %}
-<div class="row d-flex justify-content-center align-items-center">
-    <div class="container">
-        <div>
-            <form>
-                <div class="d-flex flex-column" id="chat-text">
-                    {% for m in messages %}
-                    
-                    <div class="container" id="message-container"
-                       data-message-key="{{ m.message_key }}">
-                       <br/>
-                            <div class="container d-flex justify-content-between">
-                              <div class="container">
-                                {{ m.author }}
-                            </div> 
+        <div class="row container d-flex justify-content-center">
+                    <div class="ps-container ps-theme-default ps-active-y" id="chat-text">
+                        {% if messages.count == 0 %}
                             <div class="container">
-                                {{ m.date_sent|date:"d.m.Y" }}, {{ m.date_sent|time:"G:i" }}
+                                <h5>Здесь пока тихо..</h5>
+                                <h5>Начните общение первым!</h5>
                             </div>
-                           </div>
-                        <div class="container" data-changed="{{ m.changed }}">
-                            <p class="message-content">
-                                {{ m.message_body }}
-                            </p>
-                            {% if m.changed %}                            
-                            <p>
-                                ред.
-                            </p>
-                            {% endif %}
-                        </div>
-                        {% if request.user == m.author %}
-                        <div class="container d-flex justify-content-between">
-                            <button class="delete-button"
-                             type="button">Удалить</button>
-                            <button class="change-button" type="button">Изменить</button>
-                        </div>
+                        {% else %}
+                        {% for m in messages %}
+                            <div class="media media-chat {% if request.user == m.author %} media-chat-reverse {% endif %}" id="message-container"
+                            data-message-key="{{ m.message_key }}"> 
+                                <div class="media-body">
+                                    <div>
+                                        <p class="author">{{ m.author }}</p>
+                                    </div>
+                                    <div class="container" data-changed="{{ m.changed }}">
+                                        <p class="message-content">
+                                            {{ m.message_body }}
+                                        </p>
+                                        {% if m.changed %}                            
+                                        <p>
+                                            ред.
+                                        </p>
+                                        {% endif %}
+                                    </div>
+                                    <div>
+                                        <p class="meta"><time>{{ m.date_sent|date:"d.m.Y" }}, {{ m.date_sent|time:"G:i" }}</time></p>
+                                    </div>
+                                </div>
+                                {% if request.user == m.author %}
+                                <div class="container d-flex justify-content-end">
+                                    <button class="btn btn-light delete-button"
+                                    type="button" style="margin-right: 10px;"><img width="24px" height="24px"  src="{% static 'delete-icon.svg' %}"/></button>
+                                    <button class="btn btn-light change-button" type="button"><img width="24px" height="24px" src="{% static 'edit-icon.svg' %}"/></button>
+                                </div>
+                                {% endif %}
+                                <br class="separator"/>
+                            </div>
+                            {% endfor %}
                         {% endif %}
-                       </div>
-                        {% endfor %} 
-                </div>
-                <br/>
-                <div class="form-group">
-                    <input class="form-control" id="user-message" type="text" size="80">
-                </div>
-                <br/>
-                <input class="btn btn-secondary btn-lg btn-block" id="submit" type="button" value="Отправить">
-            </form>
+                    </div>
+                    <form style="padding-top: 20px;">
+                        <div class="form-group">
+                            <input class="form-control" id="user-message" type="text" size="80">
+                        </div>
+                        <br/>
+                        <input class="btn btn-primary" id="submit" type="button" value="Отправить">
+                    </form>
         </div>
-    </div>
-</div>
+
 <div class="container">
     
 </div>
@@ -124,7 +126,7 @@
         }
         document.querySelector('#submit').removeAttribute('key')
         document.querySelector('#submit').value = 'Отправить'
-        inputMessage.value = '';
+        document.querySelector('#user-message').value = '';
     };
        
     document.querySelector('#user-message').onkeydown = (e) => {
@@ -145,14 +147,13 @@
         if(data.changed || data.delete){
             var container = document                                                        
                     .querySelector(`div[data-message-key="${data.message_key}"]`)
-           
-            if(data.delete){
-                 container.textContent = data.message;
-                }
+           var changed_message = container.querySelector('div[data-changed]');
             
+            if(data.delete){
+                document.querySelector("#chat-text").removeChild(container);
+            }
             if(data.changed){
-                var changed_message = container.querySelector('div[data-changed]');
-                changed_message.textContent = data.message
+                changed_message.querySelector('.message-content').textContent = data.message
                 const changed_label = document.createElement('p');
                 changed_label.textContent = 'ред.'
                 changed_message.appendChild(changed_label)
@@ -162,7 +163,8 @@
         }
         else{
             //create container for new message
-            var new_message_container = createHTMLelement('div', 'class', 'container')
+            
+            var new_message_container = createHTMLelement('div', 'class', 'media media-chat')
             new_message_container.id = 'message-container';
             new_message_container.setAttribute('data-message-key', data.message_key)
             //create text container
@@ -176,25 +178,36 @@
             const django_date_format = new Intl.DateTimeFormat(undefined, options).format(new Date(data.message_key))
         
             //create and fillin inner divs
-            var header_container = createHTMLelement('div', 'class', 'container d-flex justify-content-between')
-            var author_container = createHTMLelement('div', 'class', 'container')
-            author_container.textContent = data.username;
-            var date_container = createHTMLelement('div', 'class', 'container')
-            date_container.textContent = django_date_format;
+            var message_body_container = createHTMLelement('div', 'class', 'media-body')
+            var author_paragraph = createHTMLelement('p', 'class', 'author')
+            author_paragraph.textContent = data.username;
+            var date_container = createHTMLelement('p', 'class', 'meta')
+            var time_element = document.createElement('time');
+            time_element.textContent = django_date_format
+            date_container.appendChild(time_element)
+            var author = document.createElement('div');
+            author.appendChild(author_paragraph)
+            var date = document.createElement('div')
+            date.appendChild(date_container)
+
             //append all elements in message container
-            new_message_container.appendChild(document.createElement('br'));
-            new_message_container.appendChild(header_container); 
-            new_message_container.appendChild(text_container); 
-            header_container.appendChild(author_container)
-            header_container.appendChild(date_container);
+            message_body_container.appendChild(author)
+            message_body_container.appendChild(text_container)
+            message_body_container.appendChild(date)
+            new_message_container.appendChild(message_body_container); 
+
             //create buttons if current user wrote this message
             if(data.username == user_name){
-                var button_container = createHTMLelement('div', 'class', 'container d-flex justify-content-between')
-                var delete_button = createHTMLelement('button', 'id', 'delete-button')
-                delete_button.textContent = 'Удалить';
-                                var change_button = createHTMLelement('button', 'id', 'change-button')
-                change_button.textContent = 'Изменить';
-   
+
+                new_message_container.className += ' media-chat-reverse';
+                var button_container = createHTMLelement('div', 'class', 'container d-flex justify-content-end')
+                var delete_button = createHTMLelement('button', 'class', 'btn btn-light delete-button')
+                var delete_image_source = "{% static 'delete-icon.svg' %}"
+                delete_button.appendChild(createIconElement(24, 24, delete_image_source))
+                delete_button.style = 'margin-right:10px;'
+                var change_button = createHTMLelement('button', 'class', 'btn btn-light change-button')
+                var edit_image_source = "{% static 'edit-icon.svg' %}"
+                change_button.appendChild(createIconElement(24, 24, edit_image_source))
                 change_button.type = 'button'
                 delete_button.type = 'button'
                 delete_button.addEventListener(
@@ -204,6 +217,7 @@
                 button_container.appendChild(delete_button);
                 button_container.appendChild(change_button);
                 new_message_container.appendChild(button_container);  
+                
                 const old_message = new_message_container.querySelector('.message-content')
                 change_button.addEventListener(
                         'click', function(){
@@ -212,13 +226,16 @@
                         )
                     }
                 
-                 
+                new_message_container.appendChild(createHTMLelement('br', 'class', 'separator'));  
                 document.querySelector("#chat-text").appendChild(new_message_container);
+                new_message_container.scrollIntoView({block: "center", behavior: "smooth"})
             } 
        }
 
     chatSocket.onopen = (e) => {   
-        document.getElementById('user-message').focus() 
+        var messages = document.getElementsByClassName('media-chat');
+        var sep = messages[messages.length - 1].querySelector('.separator')
+                                                .scrollIntoView({block: "center", behavior: "smooth"});
     }
 
 
@@ -228,6 +245,14 @@
             result.setAttribute(attrName, attrs)
         }
         return result;
+    }
+
+    const createIconElement = (width, height, source) => {
+        var icon_image = document.createElement('img')
+        icon_image.width = width
+        icon_image.height = height
+        icon_image.src = source
+        return icon_image
     }
 </script>
 {% endblock %}

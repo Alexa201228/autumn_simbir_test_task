@@ -5,10 +5,11 @@
 {% block content %}
 <div class="d-flex flex-column justify-content-center align-items-center">
     <div class="container">
+        <h3>Введите свой ник-нейм для начала общения</h3>
         <form method="post">
             {% csrf_token %}
             {{ form.as_p }}
-            <input type="submit" id="enter-room" value="Найти в комнату">
+            <input class="btn btn-primary" type="submit" id="enter-room" value="Начать общение!">
         </form>       
     </div> 
 </div>

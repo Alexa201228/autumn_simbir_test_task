@@ -7,9 +7,15 @@
 <h4>Чтобы начать общение, необходимо выбрать комнату</h4>
 {% for room in rooms %}
 <p>
-    <a href="{% url 'chat:room' room.slug %}">
-        {{ room.room_name }}
-    </a>
+   
+        <div class="container">
+             <a href="{% url 'chat:room' room.slug %}">{{ room.room_name }}</a>
+            <div>
+                {{ room.description }}
+            </div>
+        </div>
+        <hr/>
+    
 </p>
 {% endfor %}
 {% endblock %}
