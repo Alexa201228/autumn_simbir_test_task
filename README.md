@@ -20,12 +20,6 @@
 docker-compose up -d
 ```
 
-Чтобы выполнить тесты
-
-```sh
-docker-compose exec pytest
-```
-
 Чтобы проверить стиль кода
 
 ```sh
