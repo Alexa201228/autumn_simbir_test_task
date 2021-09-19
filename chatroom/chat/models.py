@@ -35,3 +35,13 @@ class Message(models.Model):
 
     class Meta:
         ordering = ('date_sent',)
+
+
+class Lobby(models.Model):
+    users_online = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE
+    )
+
+    def __str__(self):
+        return str(self.users_online)

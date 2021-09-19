@@ -47,7 +47,7 @@
                     </div>
                     <form style="padding-top: 20px;">
                         <div class="form-group">
-                            <input class="form-control" id="user-message" type="text" size="80">
+                            <input class="form-control" id="user-message" type="text" size="80" required>
                         </div>
                         <br/>
                         <input class="btn btn-primary" id="submit" type="button" value="Отправить">
@@ -103,10 +103,11 @@
     document.querySelector('#submit').onclick = (e) => {
         e.preventDefault();
         const inputMessage = document.querySelector('#user-message').value;
-        var message_date = new Date();
-        if(document.querySelector('#submit').value === 'Изменить')
-        {
-           chatSocket.send(JSON.stringify({
+        if(inputMessage != ''){
+            var message_date = new Date();
+            if(document.querySelector('#submit').value === 'Изменить')
+            {
+                chatSocket.send(JSON.stringify({
                         'message': inputMessage,
                         'user_name': user_name,
                         'room_title': roomTitle,
@@ -114,19 +115,21 @@
                         'code': 'change_message'
                     })) 
              
+            }
+            else{
+                chatSocket.send(JSON.stringify({
+                    'message': inputMessage,
+                    'user_name': user_name,
+                    'room_title': roomTitle,
+                    'message_key': message_date,
+                    'code': 'save_message'
+                }))
+            }
+            document.querySelector('#submit').removeAttribute('key')
+            document.querySelector('#submit').value = 'Отправить'
+            document.querySelector('#user-message').value = '';            
         }
-        else{
-            chatSocket.send(JSON.stringify({
-                'message': inputMessage,
-                'user_name': user_name,
-                'room_title': roomTitle,
-                'message_key': message_date,
-                'code': 'save_message'
-            }))
-        }
-        document.querySelector('#submit').removeAttribute('key')
-        document.querySelector('#submit').value = 'Отправить'
-        document.querySelector('#user-message').value = '';
+        
     };
        
     document.querySelector('#user-message').onkeydown = (e) => {
