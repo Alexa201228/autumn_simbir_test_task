@@ -84,7 +84,7 @@ DATABASES = {
 }
 
 LOGOUT_REDIRECT_URL = '/'
-
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
 AUTHENTICATION_BACKENDS = [
     'chat.auth_backends.PasswordlessAuthBackend',
